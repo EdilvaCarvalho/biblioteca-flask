@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, session, flash
+from flask import Flask, render_template, request, redirect, session, flash, url_for
 
 class Livro:
     def __init__(self, nome, genero, autor):
@@ -21,7 +21,9 @@ def index():
 
 @app.route('/cadastro')
 def cadastro():
-    return render_template('cadastro.html', titulo='Novo Livro')
+   if 'usuario_logado' not in session or session['usuario_logado'] == None:
+       return redirect(url_for('login', proxima=url_for('cadastro')))
+   return render_template('cadastro.html', titulo='Novo Livro')
 
 @app.route('/criar', methods=['POST',])
 def criar():
@@ -30,26 +32,28 @@ def criar():
     autor = request.form['autor']
     livro = Livro(nome, genero, autor)
     lista.append(livro)
-    return redirect('/')
+    return redirect(url_for('index'))
 
 @app.route('/login')
 def login():
-    return render_template('login.html')
+    proxima = request.args.get('proxima')
+    return render_template('login.html', titulo='Login', proxima=proxima)
 
 @app.route('/autenticar', methods=['POST', ])
 def autenticar():
     if '12345' == request.form['senha']:
         session['usuario_logado'] = request.form['usuario']
-        flash(request.form['usuario'] + ' logou com sucesso!')
-        return redirect('/')
+        flash(request.form['usuario'] + ' logado com sucesso!')
+        proxima_pagina = request.form['proxima']
+        return redirect(proxima_pagina)
     else:
         flash('Senha ou usuário incorreto!')
-        return redirect('/login')
+        return redirect(url_for('login'))
 
 @app.route('/logout')
 def logout():
     session['usuario_logado'] = None
     flash('Logout efetuado com sucesso!')
-    return redirect('/login')
+    return redirect(url_for('login'))
 
 app.run(debug=True)
